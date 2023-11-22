@@ -17,22 +17,22 @@
     "moduleResolution": "Node",
     "sourceMap": true,
     "inlineSources": true,
-    "sourceRoot": "/",
-    "outDir": "build",
-    "baseUrl": "src",
-    "paths": {
-      "config/*": ["config/*"]
-    }
+    // "sourceRoot": "/",
+    // "outDir": "build",
+    // "baseUrl": "src",
+    // "paths": {
+    //   "config/*": ["config/*"]
+    // }
   },
-  "include": ["src/**/*.ts", "src/utils/migration.ts",
-    "vite.config.mts"
-  ],
-  "exclude": [
-    "node_modules",
-    "./node_modules",
-    "node_modules",
-    "./node_modules/*",
-    "./node_modules/@types/node/index.d.ts",
-    "./node_modules/.prisma/client/index.d.ts"
-  ]
+  // "include": ["src/**/*.ts", "src/utils/migration.ts",
+  //   "vite.config.mts"
+  // ],
+  // "exclude": [
+  //   "node_modules",
+  //   "./node_modules",
+  //   "node_modules",
+  //   "./node_modules/*",
+  //   "./node_modules/@types/node/index.d.ts",
+  //   "./node_modules/.prisma/client/index.d.ts"
+  // ]
 }
