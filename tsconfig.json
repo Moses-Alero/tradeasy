@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["es2022"],
-    "module": "NodeNext",
+    "module": "CommonJS",
     "target": "es2022",
     "skipLibCheck": true,
     "esModuleInterop": true,
