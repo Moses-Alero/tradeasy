@@ -18,7 +18,7 @@
     "sourceMap": true,
     "inlineSources": true,
     "sourceRoot": "/",
-    "outDir": "build",
+    "outDir": "/",
     "baseUrl": "src",
     "paths": {
       "config/*": ["config/*"]
