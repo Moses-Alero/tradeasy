@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+  binaryTargets   = ["native"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VENDOR_TYPE {
+  INDIVIDUAL
+  ORGANIZATION
+}
+
+enum CLIENT_TYPE {
+  INDIVIDUAL
+  BUSINESS
+  GOVERNMENT
+}
+
+enum INVOICE_STATUS {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  DISPUTE
+}
+
+model Vendor {
+  id                 String      @id @default(uuid())
+  businessName       String
+  firstName          String
+  lastName           String      @default("")
+  email              String      @unique
+  country            String?     @default("Nigeria")
+  password           String
+  address            String?
+  city               String?
+  state              String?
+  zip                String?
+  phone              String
+  website            String?
+  cac                String?
+  OTP                String?
+  isAccountVerified  Boolean     @default(false)
+  isBusinessVerified Boolean     @default(false)
+  businessType       VENDOR_TYPE @default(INDIVIDUAL)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  isDeleted          Boolean     @default(false)
+  clients            Client[]
+  invoices           Invoice[]
+
+  @@map("vendor")
+}
+
+model Client {
+  id             String      @id @default(uuid())
+  fullname       String
+  email          String
+  phone          String
+  companyName    String?
+  billingAddress String?
+  paymentType    String?
+  clientType     CLIENT_TYPE
+  isDeleted      Boolean     @default(false)
+  vendorId       String
+  createdBy      Vendor      @relation(fields: [vendorId], references: [id])
+  invoices       Invoice[]
+
+  @@map("client_profile")
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  name        String
+  price       Float
+  isDeleted   Boolean       @default(false)
+  invoiceItem InvoiceItem[]
+  invoiceId   String?
+
+  @@map("product")
+}
+
+model Invoice {
+  id          String         @id @default(uuid())
+  invoiceNo   String         @unique
+  createdAt   DateTime       @default(now())
+  description String?        @default("Purchase of goods and services")
+  totalAmount Float
+  issuedAt    DateTime       @default(now())
+  dueDate     DateTime?      @default(now())
+  status      INVOICE_STATUS @default(DRAFT)
+  isDeleted   Boolean        @default(false)
+  vendorId    String
+  issuedBy    Vendor         @relation(fields: [vendorId], references: [id])
+  clientId    String
+  issuedTo    Client         @relation(fields: [clientId], references: [id])
+  invoiceItem InvoiceItem[]
+
+  @@map("invoice")
+}
+
+model InvoiceItem {
+  id        String  @id @default(uuid())
+  quantity  Int
+  isDeleted Boolean @default(false)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+  @@map("invoice_item")
+}
