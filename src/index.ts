@@ -7,7 +7,7 @@ import fastify, { FastifyInstance } from 'fastify';
 import fastifyJwt from '@fastify/jwt';
 import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
-import { startServer } from '../src/utils/config/server';
+import { startServer } from './utils/config/server';
 import { initRoute } from './routes/index.routes';
 // import multipart from '@fastify/multipart';
 // import { FileSizeLimit } from './utils/constants';
