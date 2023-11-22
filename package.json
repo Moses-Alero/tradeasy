@@ -2,7 +2,7 @@
   "name": "invoice-generator",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.ts",
+  "main": "./src/index.ts",
   "scripts": {
     "test": "",
     "build": "tsc -p tsconfig.json",
