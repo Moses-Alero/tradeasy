@@ -1,5 +1,3 @@
-import * as dotenv from 'dotenv';
-dotenv.config();
 import pino from 'pino';
 import { environment } from './utils/config/environment';
 import { fastifyFormbody } from '@fastify/formbody';
