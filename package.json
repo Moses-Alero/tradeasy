@@ -6,7 +6,7 @@
   "scripts": {
     "test": "",
     "build": "tsc -p tsconfig.json",
-    "start": "ts-node-dev  --env-file=.env  ./src/index.ts  | pino-pretty --colorize",
+    "start": "ts-node-dev  -r dotenv/config  ./src/index.ts  | pino-pretty --colorize",
     "dev": "ts-node-dev --env-file=.env  ./src/index.ts | pino-pretty --colorize"
   },
   "keywords": [],
