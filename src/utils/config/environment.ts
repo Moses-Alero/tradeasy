@@ -20,6 +20,7 @@ interface Environment {
   };
   appEnv: string;
   port: number;
+  host: string;
 
   appJwtSecret: string;
   elastic: {
@@ -49,6 +50,7 @@ export const environment: Environment = {
   },
   appEnv: process.env.NODE_ENV || defaultNodeEnv,
   appJwtSecret: process.env.APP_JWT_SECRET || '',
+  host: process.env.API_HOST || 'localhost',
   port: Number(process.env.API_PORT) || defaultAppPort,
   elastic: {
     apiKey: process.env.ELASTIC_EMAIL_API_KEY || '',
