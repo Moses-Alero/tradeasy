@@ -13,7 +13,7 @@ export const startServer = async (server: FastifyInstance): Promise<void> => {
         );
       }
     }
-    await server.listen({ port: environment.port, host: environment.host });
+    await server.listen({ port: environment.port });
   } catch (e) {
     pino().error(e);
     console.error(e);
