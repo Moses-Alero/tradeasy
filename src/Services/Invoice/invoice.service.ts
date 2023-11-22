@@ -12,7 +12,7 @@ import type {
 import { prisma } from '../../utils/prisma';
 import { Message } from '../../utils/response';
 import SuccessResponse from '../../utils/response/successResponse';
-import NotFoundError from 'utils/errors/notFoundError';
+import NotFoundError from '../../utils/errors/notFoundError';
 import { paginate } from '../../utils/paginate';
 
 export class InvoiceService {

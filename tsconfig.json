@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["es2022"],
-    "module": "NodeNext",
+    "module": "ES2022",
     "target": "es2022",
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -14,7 +14,7 @@
     "resolveJsonModule": true,
     "moduleDetection": "force",
     "allowJs": true,
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "Node",
     "sourceMap": true,
     "inlineSources": true,
     "sourceRoot": "/",
