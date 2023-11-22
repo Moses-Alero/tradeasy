@@ -1,38 +1,21 @@
 {
   "compilerOptions": {
-    "lib": ["es2022"],
-    "module": "CommonJS",
-    "target": "es2022",
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "incremental": true,
-    "noImplicitAny": false,
-    "verbatimModuleSyntax": false, // Todo change to true and fix all the error
-    "noUncheckedIndexedAccess": true,
-    "resolveJsonModule": true,
-    "moduleDetection": "force",
-    "allowJs": true,
-    "moduleResolution": "NodeNext",
-    "sourceMap": true,
-    "inlineSources": true,
-    "sourceRoot": "/",
-    "outDir": "build",
-    "baseUrl": "src",
-    "paths": {
-      "config/*": ["config/*"]
-    }
+    "target": "ES6",
+    "moduleResolution":"Node",                                  /* Set the JavaScript language version for emitted JavaScript and include compatible library declarations. */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    /* Modules */
+    "module": "CommonJS",  
+    "esModuleInterop": true,                             /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */
+    "forceConsistentCasingInFileNames": true,            /* Ensure that casing is correct in imports. */
+
+    /* Type Checking */
+    "strict": true,                                      /* Enable all strict type-checking options. */
+    "skipLibCheck": true,                                /* Skip type checking all .d.ts files. */
   },
-  "include": ["src/**/*.ts", "src/utils/migration.ts",
-    "vite.config.mts"
-  ],
-  "exclude": [
-    "node_modules",
-    "./node_modules",
-    "node_modules",
-    "./node_modules/*",
-    "./node_modules/@types/node/index.d.ts",
-    "./node_modules/.prisma/client/index.d.ts"
-  ]
+//   "ts-node": {
+//     "esm": true
+// }
+
 }
