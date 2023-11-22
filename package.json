@@ -5,9 +5,10 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "",
+    "build": "tsc -p tsconfig.json",
+    "start": "node --env-file=.env build/src/index.ts",
     "dev": "ts-node-dev --env-file=.env  ./src/index.ts | pino-pretty --colorize"
   },
-  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",

@@ -1,8 +1,7 @@
 import pino from 'pino';
 import { environment } from './utils/config/environment';
-// import { initRoute } from './routes';
 import { fastifyFormbody } from '@fastify/formbody';
-// import './utils/prisma';
+import './utils/prisma';
 import fastify, { FastifyInstance } from 'fastify';
 import fastifyJwt from '@fastify/jwt';
 import helmet from '@fastify/helmet';
