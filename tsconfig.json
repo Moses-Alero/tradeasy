@@ -18,12 +18,15 @@
     "sourceMap": true,
     "inlineSources": true,
     "sourceRoot": "/",
-    "outDir": "/",
+    "outDir": "build",
     "baseUrl": "src",
     "paths": {
       "config/*": ["config/*"]
     }
   },
+  "include": ["src/**/*.ts", "src/utils/migration.ts",
+    "vite.config.mts"
+  ],
   "exclude": [
     "node_modules",
     "./node_modules",
