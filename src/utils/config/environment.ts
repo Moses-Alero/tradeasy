@@ -49,7 +49,7 @@ export const environment: Environment = {
   },
   appEnv: process.env.NODE_ENV || defaultNodeEnv,
   appJwtSecret: process.env.APP_JWT_SECRET || '',
-  port: Number(process.env.API_PORT) || defaultAppPort,
+  port: Number(process.env.PORT) || defaultAppPort,
   elastic: {
     apiKey: process.env.ELASTIC_EMAIL_API_KEY || '',
     verifiedMail: process.env.VERIFIED_MAIL || '',
