@@ -5,7 +5,6 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "",
-    "start": "node  --env-file=.env build/src/index.js | pino-pretty --colorize",
     "build": "tsc -p tsconfig.json",
     "dev": "ts-node-dev --env-file=.env  ./src/index.ts | pino-pretty --colorize"
   },
