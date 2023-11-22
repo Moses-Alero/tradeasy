@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "ts-node-dev --env-file=.env  ./src/index.ts | pino-pretty --colorize"
   },
+  "type": "module",
   "keywords": [],
   "author": "",
   "license": "ISC",
