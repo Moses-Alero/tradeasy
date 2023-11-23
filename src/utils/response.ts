@@ -111,4 +111,7 @@ export const Message = {
   INVOICE_DELETED: 'Invoice deleted successfully',
   INVOICE_SENT: 'Invoice sent successfully',
   INVOICE_MARKED_AS_PAID: 'Invoice marked as paid successfully',
+  CLIENT_DELETED: 'Client deleted successfully',
+  CLIENT_UPDATED: 'Client updated successfully',
+  INVOICE_SEARCH_RESULT: 'Invoice search result',
 } as const;

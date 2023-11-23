@@ -1,6 +1,8 @@
 import {
   ApiResponse,
   IClient,
+  IInvoice,
+  IInvoiceItem,
   IVendor,
   PaginationInputQuery,
 } from './../../utils/interface.d';
@@ -80,10 +82,22 @@ export class ClientService {
         },
       });
       if (!clientData) return new NotFoundError(Message.CLIENT_NOT_FOUND);
-      const totalInvoices = clientData.invoices.length;
+      const totalIssuedInvoices = clientData.invoices.length;
+      const totalPaidInvoices = clientData.invoices.filter((invoice) => {
+        return invoice.status === 'PAID';
+      }).length;
+      const totalPendingInvoices = clientData.invoices.filter((invoice) => {
+        return invoice.status === 'SENT';
+      }).length;
+      const totalOverdueInvoices = clientData.invoices.filter((invoice) => {
+        return invoice.status === 'OVERDUE';
+      }).length;
       const data = {
         ...clientData,
-        totalInvoices,
+        totalIssuedInvoices,
+        totalPaidInvoices,
+        totalPendingInvoices,
+        totalOverdueInvoices,
       };
       return new SuccessResponse(
         Message.CLIENT_FETCHED,
@@ -124,7 +138,11 @@ export class ClientService {
           companyName: true,
           billingAddress: true,
           clientType: true,
-          invoices: true,
+          invoices: {
+            select: {
+              invoiceItems: true,
+            },
+          },
         },
         take: pageSize,
         skip: pageCursor ? 1 : undefined,
@@ -132,10 +150,17 @@ export class ClientService {
       });
       const data = clients.map((client) => {
         const totalIssuedInvoices = client.invoices.length;
+        const totalPurchasedItems = client.invoices.reduce(
+          (acc: number, curr: any) => {
+            return acc + curr.invoiceItems.length;
+          },
+          0
+        );
         delete client.invoices;
         return {
           ...client,
           totalIssuedInvoices,
+          totalPurchasedItems,
         };
       });
       return new SuccessResponse(
@@ -143,6 +168,67 @@ export class ClientService {
         STANDARD.SUCCESS,
         paginate(data, limit)
       );
+    } catch (e) {
+      request.log.error(e);
+      handleDBError(e);
+      new InternalServerError();
+    }
+  }
+
+  static async updateClient(
+    request: FastifyRequest
+  ): Promise<ApiResponse<void>> {
+    try {
+      const vendor = request.user as IVendor;
+      const clientData = request.body as IClient;
+      const { id: clientId } = request.params as { id: string };
+      const client = await prisma.client.findFirst({
+        where: {
+          id: clientId,
+          vendorId: vendor.id,
+          isDeleted: false,
+        },
+      });
+      if (!client) return new NotFoundError(Message.CLIENT_NOT_FOUND);
+      await prisma.client.update({
+        where: {
+          id: clientId,
+        },
+        data: {
+          ...clientData,
+        },
+      });
+      return new SuccessResponse(Message.CLIENT_UPDATED);
+    } catch (e) {
+      request.log.error(e);
+      handleDBError(e);
+      new InternalServerError();
+    }
+  }
+
+  static async deleteClient(
+    request: FastifyRequest
+  ): Promise<ApiResponse<void>> {
+    try {
+      const vendor = request.user as IVendor;
+      const { id: clientId } = request.params as { id: string };
+      const client = await prisma.client.findFirst({
+        where: {
+          id: clientId,
+          vendorId: vendor.id,
+          isDeleted: false,
+        },
+      });
+      if (!client) return new NotFoundError(Message.CLIENT_NOT_FOUND);
+      await prisma.client.update({
+        where: {
+          id: clientId,
+        },
+        data: {
+          isDeleted: true,
+        },
+      });
+      return new SuccessResponse(Message.CLIENT_DELETED);
     } catch (e) {
       request.log.error(e);
       handleDBError(e);

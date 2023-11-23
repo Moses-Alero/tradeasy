@@ -18,4 +18,14 @@ export class ClientController {
   ): Promise<ApiResponse<IClient[]>> {
     return await ClientService.getAllClients(request);
   }
+  static async updateClient(
+    request: FastifyRequest
+  ): Promise<ApiResponse<void>> {
+    return await ClientService.updateClient(request);
+  }
+  static async deleteClient(
+    request: FastifyRequest
+  ): Promise<ApiResponse<void>> {
+    return await ClientService.deleteClient(request);
+  }
 }
