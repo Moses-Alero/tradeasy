@@ -5,6 +5,7 @@ import InternalServerError from '../../utils/errors/internalServerError';
 import type {
   ApiResponse,
   IInvoice,
+  IInvoiceStatistics,
   IVendor,
   PaginateResult,
   PaginationInputQuery,
@@ -14,6 +15,8 @@ import { Message } from '../../utils/response';
 import SuccessResponse from '../../utils/response/successResponse';
 import NotFoundError from '../../utils/errors/notFoundError';
 import { paginate } from '../../utils/paginate';
+import { Mailer } from '../../utils/helper/mailer.helper';
+import { invoiceTemplate } from '../../utils/templates/invoice.template';
 
 export class InvoiceService {
   static generateInvoiceNumber(businessName: string): string {
@@ -32,6 +35,13 @@ export class InvoiceService {
   static async generateAndSendInvoice(invoiceId: string): Promise<void> {
     // Generate the invoice number
     const invoice = await this.getInvoiceData(invoiceId);
+    const invoiceBody = invoiceTemplate(invoice);
+    const mailParams = {
+      To: invoice.issuedTo.email,
+      Subject: 'Invoice',
+      Body: invoiceBody,
+    };
+    Mailer.sendEmail(mailParams);
   }
 
   static async createInvoice(
@@ -40,18 +50,42 @@ export class InvoiceService {
     try {
       const vendor = request.user as IVendor;
       const invoiceData = request.body as IInvoice;
-      const invoiceNumber = this.generateInvoiceNumber(vendor.businessName);
+      const clientEmail = request.body['clientEmail'];
+      const invoiceNo = this.generateInvoiceNumber(vendor.businessName);
+      const client = await prisma.client.findFirst({
+        where: {
+          email: clientEmail,
+          vendorId: vendor.id,
+          isDeleted: false,
+        },
+      });
+      if (!client) return new NotFoundError(Message.CLIENT_NOT_FOUND);
       //if not specified due date is automatically set to 7 days later
       const dueDate = new Date();
       dueDate.setDate(dueDate.getDate() + 7);
       const invoice = await prisma.invoice.create({
         data: {
-          ...invoiceData,
-          invoiceNo: invoiceNumber,
+          invoiceNo,
+          createdAt: new Date(),
+          description: invoiceData.description ?? undefined,
+          totalAmount: invoiceData.totalAmount,
           dueDate,
+          status: invoiceData.status,
           vendorId: vendor.id,
+          clientId: client.id,
         },
       });
+      // create invoice Items
+      await prisma.invoiceItem.createMany({
+        data: invoiceData.invoiceItems.map((item) => {
+          return {
+            ...item,
+            invoiceId: invoice.id,
+            clientId: client.id,
+          };
+        }),
+      });
+      await this.generateAndSendInvoice(invoice.id);
       return new SuccessResponse(
         Message.INVOICE_CREATED,
         STANDARD.SUCCESS,
@@ -83,6 +117,22 @@ export class InvoiceService {
           totalAmount: true,
           dueDate: true,
           issuedAt: true,
+          issuedTo: {
+            select: {
+              fullname: true,
+              email: true,
+              billingAddress: true,
+              companyName: true,
+              paymentType: true,
+            },
+          },
+          invoiceItems: {
+            select: {
+              item: true,
+              quantity: true,
+              unitPrice: true,
+            },
+          },
         },
       });
       if (!invoice) return new NotFoundError(Message.INVOICE_NOT_FOUND);
@@ -180,8 +230,9 @@ export class InvoiceService {
           id: invoiceId,
         },
         data: {
-          ...invoiceData,
-          vendorId: vendor.id,
+          description: invoiceData.description ?? undefined,
+          totalAmount: invoiceData.totalAmount,
+          status: invoiceData.status,
         },
       });
       return new SuccessResponse(
@@ -198,7 +249,7 @@ export class InvoiceService {
 
   static async getInvoiceStatistics(
     request: FastifyRequest
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<IInvoiceStatistics>> {
     try {
       const [draftInvoices, pendingInvoices, paidInvoices, overDueInvoices] =
         await prisma.$transaction([
@@ -364,17 +415,140 @@ export class InvoiceService {
               paymentType: true,
             },
           },
-          invoiceItem: {
+          invoiceItems: {
             select: {
-              product: true,
+              item: true,
+              quantity: true,
+              unitPrice: true,
             },
           },
         },
       });
 
-      return invoice;
+      return invoice as any;
     } catch (error) {
       throw error;
+    }
+  }
+
+  static async sendReminderForOverdueInvoices(
+    request: FastifyRequest
+  ): Promise<void> {
+    try {
+      const vendor = request.user as IVendor;
+      const invoices = await prisma.invoice.findMany({
+        where: {
+          vendorId: vendor.id,
+          status: 'OVERDUE',
+        },
+        select: {
+          id: true,
+          invoiceNo: true,
+          description: true,
+          totalAmount: true,
+          dueDate: true,
+          issuedAt: true,
+          issuedTo: {
+            select: {
+              fullname: true,
+              email: true,
+              billingAddress: true,
+              companyName: true,
+              paymentType: true,
+            },
+          },
+          invoiceItems: true,
+        },
+      });
+    } catch (e) {
+      request.log.error(e);
+      handleDBError(e);
+      new InternalServerError();
+    }
+  }
+
+  static async findInvoice(
+    request: FastifyRequest
+  ): Promise<ApiResponse<IInvoice>> {
+    try {
+      const { limit = 10, cursor } = request.query as PaginationInputQuery;
+
+      const pageCursor = cursor
+        ? {
+            id: atob(cursor),
+          }
+        : undefined;
+
+      const pageSize = Number(limit);
+
+      const vendor = request.user as IVendor;
+      const searchParams = request.query['searchParams'];
+
+      if (!searchParams || searchParams === '')
+        return new SuccessResponse(
+          Message.INVOICE_SEARCH_RESULT,
+          STANDARD.SUCCESS,
+          []
+        );
+
+      const invoices = await prisma.invoice.findMany({
+        where: {
+          OR: [
+            {
+              issuedTo: {
+                fullname: {
+                  contains: searchParams,
+                  mode: 'insensitive',
+                },
+              },
+            },
+            {
+              invoiceNo: {
+                contains: searchParams,
+                mode: 'insensitive',
+              },
+            },
+          ],
+          vendorId: vendor.id,
+          isDeleted: false,
+        },
+        select: {
+          id: true,
+          invoiceNo: true,
+          description: true,
+          totalAmount: true,
+          status: true,
+          dueDate: true,
+          issuedAt: true,
+          issuedTo: {
+            select: {
+              fullname: true,
+            },
+          },
+        },
+        take: pageSize,
+        cursor: pageCursor,
+        skip: pageCursor ? 1 : undefined,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      const data = invoices.map((invoice) => {
+        return {
+          ...invoice,
+          issuedTo: invoice.issuedTo.fullname,
+        };
+      });
+      return new SuccessResponse(
+        Message.INVOICE_SEARCH_RESULT,
+        STANDARD.SUCCESS,
+        paginate(data, limit)
+      );
+    } catch (error) {
+      request.log.error(error);
+      handleDBError(error);
+      new InternalServerError();
     }
   }
 }

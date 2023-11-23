@@ -19,4 +19,14 @@ export async function clientRoute(fastify: FastifyInstance): Promise<void> {
     { onRequest: [AuthMiddleware.authenticate] },
     ResponseHandler.handle(ClientController.createClient)
   );
+  fastify.post(
+    '/update/:id',
+    { onRequest: [AuthMiddleware.authenticate] },
+    ResponseHandler.handle(ClientController.updateClient)
+  );
+  fastify.delete(
+    '/delete/:id',
+    { onRequest: [AuthMiddleware.authenticate] },
+    ResponseHandler.handle(ClientController.deleteClient)
+  );
 }
