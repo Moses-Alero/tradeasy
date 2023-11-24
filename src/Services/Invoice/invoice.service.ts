@@ -16,7 +16,10 @@ import SuccessResponse from '../../utils/response/successResponse';
 import NotFoundError from '../../utils/errors/notFoundError';
 import { paginate } from '../../utils/paginate';
 import { Mailer } from '../../utils/helper/mailer.helper';
-import { invoiceTemplate } from '../../utils/templates/invoice.template';
+import {
+  invoiceEmailTemplate,
+  invoicePaymentTemplate,
+} from '../../utils/templates/invoice.template';
 
 export class InvoiceService {
   static generateInvoiceNumber(businessName: string): string {
@@ -35,7 +38,7 @@ export class InvoiceService {
   static async generateAndSendInvoice(invoiceId: string): Promise<void> {
     // Generate the invoice number
     const invoice = await this.getInvoiceData(invoiceId);
-    const invoiceBody = invoiceTemplate(invoice);
+    const invoiceBody = invoiceEmailTemplate(invoice);
     const mailParams = {
       To: invoice.issuedTo.email,
       Subject: 'Invoice',
@@ -70,7 +73,7 @@ export class InvoiceService {
           description: invoiceData.description ?? undefined,
           totalAmount: invoiceData.totalAmount,
           dueDate,
-          status: invoiceData.status,
+          status: 'SENT',
           vendorId: vendor.id,
           clientId: client.id,
         },
@@ -548,6 +551,32 @@ export class InvoiceService {
     } catch (error) {
       request.log.error(error);
       handleDBError(error);
+      new InternalServerError();
+    }
+  }
+  static async payForInvoice(
+    request: FastifyRequest
+  ): Promise<string | ApiResponse<string>> {
+    try {
+      const vendor = request.user as IVendor;
+      const { id: invoiceId } = request.params as { id: string };
+
+      const invoiceExists = await prisma.invoice.findFirst({
+        where: {
+          id: invoiceId,
+          isDeleted: false,
+        },
+      });
+
+      if (!invoiceExists) return new NotFoundError(Message.INVOICE_NOT_FOUND);
+
+      const invoice = await this.getInvoiceData(invoiceId);
+      const paymentHtml = invoicePaymentTemplate(invoice);
+
+      return paymentHtml;
+    } catch (e) {
+      request.log.error(e);
+      handleDBError(e);
       new InternalServerError();
     }
   }

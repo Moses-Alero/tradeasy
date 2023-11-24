@@ -28,6 +28,7 @@ interface Environment {
     templateId: string;
     passwordRecoveryTemplateId: string;
   };
+  apiUri: string;
 }
 
 export const environment: Environment = {
@@ -56,4 +57,5 @@ export const environment: Environment = {
     templateId: process.env.TEMPLATE_ID || '',
     passwordRecoveryTemplateId: process.env.PASSWORD_RECOVERY_TEMPLATE_ID || '',
   },
+  apiUri: process.env.API_URI || '',
 };

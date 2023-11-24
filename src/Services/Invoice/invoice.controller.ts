@@ -47,4 +47,10 @@ export class InvoiceController {
   ): Promise<ApiResponse<IInvoice>> {
     return await InvoiceService.findInvoice(request);
   }
+
+  static async payForInvoice(
+    request: FastifyRequest
+  ): Promise<string | ApiResponse<string>> {
+    return await InvoiceService.payForInvoice(request);
+  }
 }

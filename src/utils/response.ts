@@ -114,4 +114,5 @@ export const Message = {
   CLIENT_DELETED: 'Client deleted successfully',
   CLIENT_UPDATED: 'Client updated successfully',
   INVOICE_SEARCH_RESULT: 'Invoice search result',
+  TRANSACTION_PIN_VERIFIED: 'Transaction pin verified successfully',
 } as const;

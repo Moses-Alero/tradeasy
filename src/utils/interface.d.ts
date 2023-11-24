@@ -3,13 +3,23 @@ import SuccessResponse from './response/successResponse';
 import ValidationError from './errors/validationError';
 import { JwtPayload } from 'jsonwebtoken';
 import { Interface } from 'readline';
-import { Client, Invoice, InvoiceItem, Vendor } from '@prisma/client';
+import {
+  Client,
+  Invoice,
+  InvoiceItem,
+  Vendor,
+  Transaction,
+} from '@prisma/client';
 
 type RequestHandler<T> = (
   req: FastifyRequest,
   reply?: FastifyReply
 ) => Promise<ApiResponse<T>>;
 
+type HtmlRequestHandler<T> = (
+  req: FastifyRequest,
+  reply?: FastifyReply
+) => Promise<ApiResponse<T> | string>;
 export interface IErrorResponse {
   statusCode: number;
   error: string;
@@ -52,6 +62,14 @@ type EmailParams = {
   Body: string;
   To: string;
 };
+
+export interface ITransaction extends Transaction {}
+export interface ISetTransactionPinPayload {
+  pin: string;
+}
+interface InputParamsObject<T> {
+  [key: string]: T;
+}
 
 export type IJwtDecodedPayload = JwtPayload | Partial<IVendor>;
 

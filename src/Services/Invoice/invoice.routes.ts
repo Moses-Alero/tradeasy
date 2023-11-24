@@ -39,4 +39,9 @@ export async function invoiceRoute(fastify: FastifyInstance): Promise<void> {
     { onRequest: [AuthMiddleware.authenticate] },
     ResponseHandler.handle(InvoiceController.sendInvoice)
   );
+  fastify.get(
+    '/pay/:id',
+    { onRequest: [AuthMiddleware.authenticate] },
+    ResponseHandler.handleHTML(InvoiceController.payForInvoice)
+  );
 }
