@@ -29,6 +29,10 @@ interface Environment {
     passwordRecoveryTemplateId: string;
   };
   apiUri: string;
+  flutterwave: {
+    secretKey: string;
+    publicKey: string;
+  };
 }
 
 export const environment: Environment = {
@@ -58,4 +62,8 @@ export const environment: Environment = {
     passwordRecoveryTemplateId: process.env.PASSWORD_RECOVERY_TEMPLATE_ID || '',
   },
   apiUri: process.env.API_URI || '',
+  flutterwave: {
+    secretKey: process.env.FLUTTERWAVE_SECRET_KEY || '',
+    publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || '',
+  },
 };

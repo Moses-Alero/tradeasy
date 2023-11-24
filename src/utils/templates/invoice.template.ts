@@ -201,7 +201,7 @@ export const invoicePaymentTemplate = (data: any) => {
           
           function makePayment() {
               FlutterwaveCheckout({
-                  public_key: "FLWPUBK_TEST-12fa852a2fca3622ce89024c68d64db3-X",
+                  public_key: "${env.flutterwave.publicKey}",
                   tx_ref: "titanic-48981487343MDI0NzMx",
                   amount: "${data.totalAmount}",
                   currency: "NGN",
