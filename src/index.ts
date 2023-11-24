@@ -19,7 +19,24 @@ export const server = fastify({
 
 server.register(fastifyFormbody);
 server.register(cors);
-server.register(helmet, { global: true });
+server.register(helmet, {
+  global: true,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      frameSrc: ["'self'", 'https://checkout-v3-ui-prod.f4b-flutterwave.com'],
+      connectSrc: ["'self'", 'https://api.ravepay.co'],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        'https://checkout.flutterwave.com',
+        'https://api.ravepay.co/v2/checkout/upgrade',
+        '*',
+      ],
+      // Add other directives as needed
+    },
+  },
+});
 server.register(fastifyJwt, { secret: environment.appJwtSecret });
 // server.register(multipart, {
 //   limits: {

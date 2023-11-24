@@ -28,6 +28,11 @@ interface Environment {
     templateId: string;
     passwordRecoveryTemplateId: string;
   };
+  apiUri: string;
+  flutterwave: {
+    secretKey: string;
+    publicKey: string;
+  };
 }
 
 export const environment: Environment = {
@@ -55,5 +60,10 @@ export const environment: Environment = {
     verifiedMail: process.env.VERIFIED_MAIL || '',
     templateId: process.env.TEMPLATE_ID || '',
     passwordRecoveryTemplateId: process.env.PASSWORD_RECOVERY_TEMPLATE_ID || '',
+  },
+  apiUri: process.env.API_URI || '',
+  flutterwave: {
+    secretKey: process.env.FLUTTERWAVE_SECRET_KEY || '',
+    publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || '',
   },
 };

@@ -44,7 +44,6 @@ export const Message = {
   KYC_ALREADY_COMPLETED: 'User KYC already completed.',
   KYC_COMPLETED: 'User KYC completed successfully.',
   ONLY_KYC_USER_CAN_REDEEM: 'Only KYC verified users can redeem',
-  MINIMUM_REDEEM_AMOUNT: 'Minimum redeem amount is <AMOUNT>',
   SUCCESSFUL_USER_DATA: 'Users data fetched successfully',
   SUCCESSFUL_SPECIALTY_UPDATE: 'User specialty updated successfully',
   SUCCESSFUL_INTEREST_UPDATE: 'Successfully updated user Interests',
@@ -114,4 +113,7 @@ export const Message = {
   CLIENT_DELETED: 'Client deleted successfully',
   CLIENT_UPDATED: 'Client updated successfully',
   INVOICE_SEARCH_RESULT: 'Invoice search result',
+  TRANSACTION_PIN_VERIFIED: 'Transaction pin verified successfully',
+  WRONG_REQUEST: 'Wrong request',
+  BANK_LIST_FETCHED: 'Bank list fetched successfully',
 } as const;

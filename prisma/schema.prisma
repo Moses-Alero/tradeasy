@@ -12,32 +12,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum VENDOR_TYPE {
-  INDIVIDUAL
-  ORGANIZATION
-}
-
-enum CLIENT_TYPE {
-  INDIVIDUAL
-  BUSINESS
-  GOVERNMENT
-}
-
-enum INVOICE_STATUS {
-  DRAFT
-  SENT
-  PAID
-  OVERDUE
-  DISPUTE
-}
-
 model Vendor {
-  id                 String      @id @default(uuid())
+  id                 String        @id @default(uuid())
   businessName       String
   firstName          String
-  lastName           String      @default("")
-  email              String      @unique
-  country            String?     @default("Nigeria")
+  lastName           String        @default("")
+  email              String        @unique
+  country            String?       @default("Nigeria")
   password           String
   address            String?
   city               String?
@@ -47,14 +28,17 @@ model Vendor {
   website            String?
   cac                String?
   OTP                String?
-  isAccountVerified  Boolean     @default(false)
-  isBusinessVerified Boolean     @default(false)
-  businessType       VENDOR_TYPE @default(INDIVIDUAL)
-  createdAt          DateTime    @default(now())
-  updatedAt          DateTime    @updatedAt
-  isDeleted          Boolean     @default(false)
+  isAccountVerified  Boolean       @default(false)
+  isBusinessVerified Boolean       @default(false)
+  transactionPin     String?
+  businessType       VENDOR_TYPE   @default(INDIVIDUAL)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  isDeleted          Boolean       @default(false)
   clients            Client[]
   invoices           Invoice[]
+  wallet             Wallet?       @relation("vendor")
+  transactions       Transaction[]
 
   @@map("vendor")
 }
@@ -107,4 +91,87 @@ model InvoiceItem {
   client    Client  @relation(fields: [clientId], references: [id])
 
   @@map("invoice_item")
+}
+
+model Wallet {
+  id              String    @id @default(uuid())
+  balance         Decimal   @default(0) @db.Decimal(20, 2)
+  currency        CURRENCY  @default(NGN)
+  totalWithdrawal Decimal   @default(0) @db.Decimal(20, 2)
+  totalCredit     Decimal   @default(0) @db.Decimal(20, 2)
+  vendorId        String    @unique
+  is_deleted      Boolean   @default(false)
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+  vendor          Vendor    @relation("vendor", fields: [vendorId], references: [id])
+
+  @@map("wallet")
+}
+
+model Transaction {
+  id            String                 @id @default(uuid())
+  reference_id  String                 @db.VarChar
+  amount        Decimal                @default(0) @db.Decimal(20, 2)
+  title         String?
+  message       String?
+  chargedAmount Decimal?               @db.Decimal(20, 2)
+  status        TransactionStatus?     @default(PENDING)
+  type          TransactionType?       @default(CREDIT)
+  chargeType    TransactionChargeType? @default(CARD)
+  currencyId    String?                @map("currency_id")
+  senderId      String?                @map("sender_id")
+  recipientId   String?                @map("recipient_id")
+  vendorId      String?
+  isDeleted     Boolean                @default(false)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  deletedAt     DateTime?
+  currency      CURRENCY               @default(NGN)
+  vendor        Vendor?                @relation(fields: [vendorId], references: [id])
+
+  @@map("transactions")
+}
+
+enum VENDOR_TYPE {
+  INDIVIDUAL
+  ORGANIZATION
+}
+
+enum CLIENT_TYPE {
+  INDIVIDUAL
+  BUSINESS
+  GOVERNMENT
+}
+
+enum INVOICE_STATUS {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  DISPUTE
+}
+
+enum CURRENCY {
+  NGN
+  USD
+  GBP
+  EUR
+}
+
+enum TransactionChargeType {
+  CARD
+}
+
+enum TransactionStatus {
+  PENDING
+  APPROVED
+  CANCELED
+  HOLD
+  COMPLETED
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
 }
