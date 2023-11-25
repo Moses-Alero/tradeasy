@@ -3,6 +3,7 @@ import {
   IClient,
   IInvoice,
   IInvoiceItem,
+  IPagination,
   IVendor,
   PaginationInputQuery,
 } from './../../utils/interface.d';
@@ -115,17 +116,22 @@ export class ClientService {
     request: FastifyRequest
   ): Promise<ApiResponse<IClient[]>> {
     try {
-      const { limit = 10, cursor } = request.query as PaginationInputQuery;
+      const vendor = request.user as IVendor;
 
-      const pageCursor = cursor
-        ? {
-            id: atob(cursor),
-          }
-        : undefined;
+      const payload = request.query as IPagination;
+      const currentPage = parseInt(payload?.pageNumber || '1');
+      const limit = parseInt(payload?.pageSize || '20');
+      const skip = limit * (currentPage - 1);
+
+      const totalCount = await prisma.client.count({
+        where: { vendorId: vendor.id },
+      });
 
       const pageSize = Number(limit);
+      const totalPages = Math.ceil(totalCount / limit);
+      const hasPrevious = currentPage > 1 && totalPages > 1;
+      const hasNext = currentPage < totalPages;
 
-      const vendor = request.user as IVendor;
       const clients = await prisma.client.findMany({
         where: {
           vendorId: vendor.id,
@@ -145,8 +151,7 @@ export class ClientService {
           },
         },
         take: pageSize,
-        skip: pageCursor ? 1 : undefined,
-        cursor: pageCursor,
+        skip,
       });
       const data = clients.map((client) => {
         const totalIssuedInvoices = client.invoices.length;
@@ -163,10 +168,13 @@ export class ClientService {
           totalPurchasedItems,
         };
       });
+      const result = paginate(data, currentPage, limit, !hasNext, totalCount);
+      if (result instanceof NotFoundError)
+        return new NotFoundError(Message.NO_RESOURCE_FOUND);
       return new SuccessResponse(
         Message.CLIENT_FETCHED,
         STANDARD.SUCCESS,
-        paginate(data, limit)
+        result
       );
     } catch (e) {
       request.log.error(e);

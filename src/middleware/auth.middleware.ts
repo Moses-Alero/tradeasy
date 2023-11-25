@@ -5,12 +5,15 @@ import AuthorizationError from '../utils/errors/authorizationError';
 import InternalServerError from '../utils/errors/internalServerError';
 import ValidationError from '../utils/errors/validationError';
 import { Message } from '../utils/response';
-import { IJwtDecodedPayload, IVendor } from '../utils/interface';
+import { ApiResponse, IJwtDecodedPayload, IVendor } from '../utils/interface';
+import { handleDBError } from 'utils/errorHandler';
 
 const jwt = new JSONWebToken();
 
 export class AuthMiddleware {
-  static async authenticate(request: FastifyRequest): Promise<any> {
+  static async authenticate(
+    request: FastifyRequest
+  ): Promise<ApiResponse<string> | IVendor> {
     const authorizationHeader = request.headers.authorization;
 
     if (!authorizationHeader)
@@ -22,6 +25,8 @@ export class AuthMiddleware {
     }
     try {
       const decoded: IJwtDecodedPayload = jwt.verify(details[1]);
+      console.log(decoded);
+
       const vendor = await prisma.vendor.findUnique({
         where: { id: decoded.id },
       });
@@ -30,7 +35,7 @@ export class AuthMiddleware {
         return new ValidationError(Message.INVALID_USER);
       }
 
-      request.user = vendor as Partial<IVendor>;
+      request.user = vendor as IVendor;
 
       return vendor;
     } catch (e) {

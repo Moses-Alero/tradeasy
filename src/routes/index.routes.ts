@@ -5,6 +5,7 @@ import { vendorRoute } from '../Services/Vendor/vendor.routes';
 import { invoiceRoute } from '../Services/Invoice/invoice.routes';
 import { healthCheck } from '../utils/index';
 import InternalServerError from '../utils/errors/internalServerError';
+import { walletRoute } from '../Services/Wallet/wallet.routes';
 
 export const initRoute = (server: FastifyInstance): void => {
   server.get('/', (_request, reply) => {
@@ -23,4 +24,5 @@ export const initRoute = (server: FastifyInstance): void => {
   server.register(clientRoute, { prefix: '/api/v1/client' });
   server.register(vendorRoute, { prefix: '/api/v1/vendor' });
   server.register(invoiceRoute, { prefix: '/api/v1/invoice' });
+  server.register(walletRoute, { prefix: '/api/v1/wallet' });
 };

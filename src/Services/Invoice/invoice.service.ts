@@ -6,6 +6,7 @@ import type {
   ApiResponse,
   IInvoice,
   IInvoiceStatistics,
+  IPagination,
   IVendor,
   PaginateResult,
   PaginationInputQuery,
@@ -155,17 +156,24 @@ export class InvoiceService {
     request: FastifyRequest
   ): Promise<ApiResponse<PaginateResult<IInvoice[]>>> {
     try {
-      const { limit = 10, cursor } = request.query as PaginationInputQuery;
+      const vendor = request.user as IVendor;
+      const payload = request.query as IPagination;
 
-      const pageCursor = cursor
-        ? {
-            id: atob(cursor),
-          }
-        : undefined;
-
+      const currentPage = parseInt(payload?.pageNumber || '1');
+      const limit = parseInt(payload?.pageSize || '20');
+      const skip = limit * (currentPage - 1);
       const pageSize = Number(limit);
 
-      const vendor = request.user as IVendor;
+      const totalCount = await prisma.invoice.count({
+        where: {
+          vendorId: vendor.id,
+        },
+      });
+
+      const totalPages = Math.ceil(totalCount / limit);
+      const hasPrevious = currentPage > 1 && totalPages > 1;
+      const hasNext = currentPage < totalPages;
+      console.log(totalPages);
       const invoices = await prisma.invoice.findMany({
         where: {
           vendorId: vendor.id,
@@ -186,8 +194,7 @@ export class InvoiceService {
           },
         },
         take: pageSize,
-        cursor: pageCursor,
-        skip: pageCursor ? 1 : undefined,
+        skip,
         orderBy: {
           createdAt: 'desc',
         },
@@ -198,10 +205,15 @@ export class InvoiceService {
           issuedTo: invoice.issuedTo.fullname,
         };
       });
+      console.log(data);
+
+      const result = paginate(data, currentPage, limit, !hasNext, totalCount);
+      if (result instanceof NotFoundError)
+        return new NotFoundError(Message.NO_RESOURCE_FOUND);
       return new SuccessResponse(
         Message.INVOICE_FETCHED,
         STANDARD.SUCCESS,
-        paginate(data, limit)
+        result
       );
     } catch (error) {
       request.log.error(error);
@@ -474,24 +486,46 @@ export class InvoiceService {
     request: FastifyRequest
   ): Promise<ApiResponse<IInvoice>> {
     try {
-      const { limit = 10, cursor } = request.query as PaginationInputQuery;
+      const vendor = request.user as IVendor;
+      const payload = request.query as IPagination;
+      const searchParams = request.query['searchParams'];
+      const currentPage = parseInt(payload?.pageNumber || '1');
+      const limit = parseInt(payload?.pageSize || '20');
+      const skip = limit * (currentPage - 1);
 
-      const pageCursor = cursor
-        ? {
-            id: atob(cursor),
-          }
-        : undefined;
+      const totalCount = await prisma.invoice.count({
+        where: {
+          OR: [
+            {
+              issuedTo: {
+                fullname: {
+                  contains: searchParams,
+                  mode: 'insensitive',
+                },
+              },
+            },
+            {
+              invoiceNo: {
+                contains: searchParams,
+                mode: 'insensitive',
+              },
+            },
+          ],
+          vendorId: vendor.id,
+          isDeleted: false,
+        },
+      });
 
       const pageSize = Number(limit);
-
-      const vendor = request.user as IVendor;
-      const searchParams = request.query['searchParams'];
-
+      const totalPages = Math.ceil(totalCount / limit);
+      const hasPrevious = currentPage > 1 && totalPages > 1;
+      const hasNext = currentPage < totalPages;
+      const emptyValue = paginate([], currentPage, limit, !hasNext, totalCount);
       if (!searchParams || searchParams === '')
         return new SuccessResponse(
           Message.INVOICE_SEARCH_RESULT,
           STANDARD.SUCCESS,
-          []
+          emptyValue
         );
 
       const invoices = await prisma.invoice.findMany({
@@ -530,8 +564,7 @@ export class InvoiceService {
           },
         },
         take: pageSize,
-        cursor: pageCursor,
-        skip: pageCursor ? 1 : undefined,
+        skip,
         orderBy: {
           createdAt: 'desc',
         },
@@ -543,10 +576,13 @@ export class InvoiceService {
           issuedTo: invoice.issuedTo.fullname,
         };
       });
+      const result = paginate(data, currentPage, limit, !hasNext, totalCount);
+      if (result instanceof NotFoundError)
+        return new NotFoundError(Message.NO_RESOURCE_FOUND);
       return new SuccessResponse(
         Message.INVOICE_SEARCH_RESULT,
         STANDARD.SUCCESS,
-        paginate(data, limit)
+        result
       );
     } catch (error) {
       request.log.error(error);

@@ -112,6 +112,11 @@ export class AuthService {
           password,
         },
       });
+      await prisma.wallet.create({
+        data: {
+          vendorId: newVendor.id,
+        },
+      });
       const token = server.jwt.sign(
         { id: newVendor.id, email: newVendor.email },
         { expiresIn: '3d' }
