@@ -16,7 +16,8 @@ export const welcomeTemplate = (name: string, otp: string) => {
           .header {
               text-align: center;
               padding: 20px;
-              background-color: #f8f9fa;
+              color: #fff
+              background-color: #FF6641;
               border-bottom: 1px solid #dee2e6;
           }
           .content {
@@ -27,7 +28,7 @@ export const welcomeTemplate = (name: string, otp: string) => {
   <body>
       <div class="container">
           <div class="header">
-              <h1>Welcome to TradEasy</h1>
+              <h1>Welcome to Tradeazy</h1>
           </div>
           <div class="content">
               <p>Dear ${name},</p>
@@ -37,7 +38,7 @@ export const welcomeTemplate = (name: string, otp: string) => {
               <p>If you did not request this, please ignore this email or contact our support team.</p>
               <p>We look forward to providing you with the best service. If you have any questions, feel free to reach out to us.</p>
               <p>Best regards,</p>
-              <p>The TradEasy Team</p>
+              <p>The Tradeazy Team</p>
           </div>
       </div>
   </body>

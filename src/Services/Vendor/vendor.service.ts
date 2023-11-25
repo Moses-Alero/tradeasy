@@ -111,4 +111,35 @@ export class VendorService {
       new InternalServerError();
     }
   }
+
+  static async getActivityLogs(
+    request: FastifyRequest
+  ): Promise<ApiResponse<any>> {
+    try {
+      const vendor = request.user as IVendor;
+
+      const data = await prisma.activityLog.findMany({
+        where: {
+          vendorId: vendor.id,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        select: {
+          action: true,
+          message: true,
+          createdAt: true,
+        },
+      });
+      return new SuccessResponse(
+        Message.ACTIVITY_LOGS_FETCHED,
+        STANDARD.SUCCESS,
+        data
+      );
+    } catch (e) {
+      request.log.error(e);
+      handleDBError(e);
+      new InternalServerError();
+    }
+  }
 }

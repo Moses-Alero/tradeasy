@@ -122,4 +122,8 @@ export const Message = {
   SIGNATURE_MISMATCH: 'Signature mismatch',
   PROCESSING_WITHDRAWAL: 'Processing withdrawal',
   NO_RESOURCE: 'No resource found',
+  PAYMENT_RECEIVED: 'Payment received from <USER>',
+  TRANSACTION_NOT_FOUND: 'Transaction not found',
+  WITHDRAWAL_FAILED: 'Withdrawal failed',
+  ACTIVITY_LOGS_FETCHED: 'Activity logs fetched successfully',
 } as const;

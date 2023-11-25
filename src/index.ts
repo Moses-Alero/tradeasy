@@ -33,6 +33,7 @@ server.register(helmet, {
         'https://api.ravepay.co/v2/checkout/upgrade',
         '*',
       ],
+      imgSrc: ["'self'", 'data:', 'https://res.cloudinary.com'],
       // Add other directives as needed
     },
   },

@@ -14,6 +14,12 @@ export class VendorController {
   ): Promise<ApiResponse<IVendor>> {
     return await VendorService.getVendor(request);
   }
+
+  static async getActivityLogs(
+    request: FastifyRequest
+  ): Promise<ApiResponse<void>> {
+    return await VendorService.getActivityLogs(request);
+  }
 }
 
 // Client Management Methods:
