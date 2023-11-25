@@ -16,7 +16,8 @@ export const passwordRecoveryTemplate = (name: string, otp: string) => {
             .header {
                 text-align: center;
                 padding: 20px;
-                background-color: #f8f9fa;
+                color: #fff;
+                background-color: #FF6641;
                 border-bottom: 1px solid #dee2e6;
             }
             .content {
@@ -27,7 +28,7 @@ export const passwordRecoveryTemplate = (name: string, otp: string) => {
     <body>
         <div class="container">
             <div class="header">
-                <h1>TradEasy Password Recovery</h1>
+                <h1>Tradeazy Password Recovery</h1>
             </div>
             <div class="content">
                 <p>Dear ${name},</p>
@@ -35,7 +36,7 @@ export const passwordRecoveryTemplate = (name: string, otp: string) => {
                 <p><strong>${otp}</strong></p>
                 <p>If you did not request this password recovery, please ignore this email or contact our support team.</p>
                 <p>Best regards,</p>
-                <p>The TradEasy Team</p>
+                <p>The Tradeazy Team</p>
             </div>
         </div>
     </body>

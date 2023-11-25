@@ -20,6 +20,7 @@ import { Mailer } from '../../utils/helper/mailer.helper';
 import {
   invoiceEmailTemplate,
   invoicePaymentTemplate,
+  paidInvoiceTemplate,
 } from '../../utils/templates/invoice.template';
 
 export class InvoiceService {
@@ -605,6 +606,11 @@ export class InvoiceService {
       });
 
       if (!invoiceExists) return new NotFoundError(Message.INVOICE_NOT_FOUND);
+      if (invoiceExists.status === 'PAID') {
+        const invoice = await this.getInvoiceData(invoiceId);
+        const paidInvoiceHtml = paidInvoiceTemplate(invoice);
+        return paidInvoiceHtml;
+      }
 
       const invoice = await this.getInvoiceData(invoiceId);
       const paymentHtml = invoicePaymentTemplate(invoice);

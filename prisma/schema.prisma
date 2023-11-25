@@ -185,6 +185,7 @@ enum TransactionStatus {
   APPROVED
   CANCELED
   HOLD
+  FAILED
   COMPLETED
 }
 

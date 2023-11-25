@@ -1,3 +1,8 @@
+// Handles all wallet related services
+// Compare this snippet from src/Services/Wallet/wallet.routes.ts:
+// Warning: This code is ugly AF and needs to be refactored, but... it works
+// STUTERN people, the code is yours to refactor after all na una organize hackathon
+
 import { FastifyRequest } from 'fastify';
 import { handleDBError } from '../../utils/errorHandler';
 import Flutterwave from 'flutterwave-node-v3';
@@ -13,12 +18,15 @@ import type {
   IBankAccountResponse,
   IBankData,
   IBankResponse,
+  ICardTransaction,
   IFlutterwaveInputPayload,
   IFlutterwaveTransaction,
   IPagination,
   ISetTransactionPinPayload,
   ITransaction,
   IVendor,
+  IWithDrawalData,
+  IWithDrawalResponse,
   IWithdraw,
   InputParamsObject,
   PaginateResult,
@@ -190,7 +198,7 @@ export class WalletService {
     request: FastifyRequest
   ): Promise<ApiResponse<void>> {
     const headers = request.headers as InputParamsObject<string>;
-    const payload = request.body as IFlutterwaveInputPayload;
+    const payload = request.body as ICardTransaction | IWithDrawalResponse;
 
     try {
       // If you specified a secret hash, check for the signature
@@ -204,138 +212,19 @@ export class WalletService {
       }
       console.log(request.body['event.type']);
 
+      // when user pays for invoice with card
+      // only card transaction is supported for now
       const eventType = request.body['event.type'];
       if (eventType === 'CARD_TRANSACTION') {
-        await this.processPayments(eventType);
+        await this.processPayments(payload as ICardTransaction);
       }
-      // find invoice
-
+      //
+      if (eventType === 'Transfer') {
+        const { transfer: transferInfo } = payload as IWithDrawalResponse;
+        console.log(payload);
+        await this.processWithdrawals(transferInfo as IWithDrawalData);
+      }
       // verify the transaction from flutterwave again
-      const verifiedTransaction = await this.verifyPaymentTransaction({
-        id: payload?.id?.toString(),
-      });
-
-      console.log(verifiedTransaction);
-
-      // check if it's successful and the amount is correct along with the transaction reference
-      if (
-        verifiedTransaction?.status === 'successful' &&
-        verifiedTransaction?.amount === payload?.amount &&
-        verifiedTransaction?.tx_ref === payload?.txRef
-      ) {
-        // Get the transaction from database
-        const transaction = await prisma.transaction.findFirst({
-          where: {
-            reference_id: payload?.txRef,
-          },
-        });
-
-        // Get the user that owns the transaction
-        const vendor = await prisma.vendor.findFirst({
-          where: {
-            email:
-              verifiedTransaction?.customer?.email ||
-              verifiedTransaction?.meta?.email,
-          },
-        });
-
-        // check if there is user
-        if (vendor) {
-          // check if there is transaction on the database
-          if (!transaction) {
-            // get user wallet
-            const vendorWallet = await prisma.wallet.findFirst({
-              where: {
-                vendorId: vendor.id,
-              },
-            });
-
-            // perform prisma transaction
-            await prisma.$transaction(async (tx) => {
-              // Update user wallet
-              if (vendorWallet) {
-                await tx.wallet.update({
-                  where: {
-                    id: vendorWallet?.id,
-                  },
-                  data: {
-                    balance: { increment: verifiedTransaction?.amount || 0 },
-                  },
-                });
-              } else {
-                await tx.wallet.create({
-                  data: {
-                    balance: verifiedTransaction?.amount || 0,
-                    vendorId: vendor.id,
-                  },
-                });
-              }
-
-              // create transaction
-              await tx.transaction.create({
-                data: {
-                  reference_id: verifiedTransaction?.tx_ref,
-                  amount: verifiedTransaction.amount,
-                  vendorId: vendor?.id,
-                  type: 'CREDIT',
-                  status: 'COMPLETED',
-                },
-              });
-            });
-            return new SuccessResponse(Message.webhookDataReceived);
-          } else if (transaction?.status === 'PENDING') {
-            // get user wallet
-            const vendorWallet = await prisma.wallet.findFirst({
-              where: {
-                vendorId: vendor.id,
-              },
-            });
-            // perform prisma transaction
-            await prisma.$transaction(async (tx) => {
-              // Update user wallet
-              if (vendorWallet) {
-                await tx.wallet.update({
-                  where: {
-                    id: vendorWallet?.id,
-                  },
-                  data: {
-                    balance: { increment: verifiedTransaction?.amount || 0 },
-                  },
-                });
-              } else {
-                await tx.wallet.create({
-                  data: {
-                    balance: verifiedTransaction?.amount || 0,
-                    vendorId: vendor.id,
-                  },
-                });
-              }
-
-              // update transaction status
-              await tx.transaction.update({
-                where: {
-                  id: transaction.id,
-                },
-                data: {
-                  status: 'COMPLETED',
-                },
-              });
-            });
-            console.log(Message.webhookDataReceived);
-            return new SuccessResponse(Message.webhookDataReceived);
-          } else {
-            console.log(Message.WRONG_REQUEST);
-            return new ValidationError(Message.WRONG_REQUEST);
-          }
-        } else {
-          console.log(Message.USER_NOT_FOUND);
-          return new NotFoundError(Message.USER_NOT_FOUND);
-        }
-      } else {
-        console.log(Message.GENERAL_ERROR);
-
-        return new ValidationError(Message.GENERAL_ERROR);
-      }
     } catch (e) {
       request.log.error(e);
       handleDBError(e);
@@ -461,14 +350,27 @@ export class WalletService {
       const details = {
         account_bank: data.bankCode,
         account_number: data.accountNumber,
-        amount: data.amount,
-        narration: 'TradEazy WithDrawal',
+        amount: Number(data.amount),
         currency: 'NGN',
+        narration: 'Tradeazy Withdrawal',
         reference: txn_ref,
+        callback_url: `${environment.apiUri}/wallet/webhook`,
+        debit_currency: 'NGN',
+        meta: [
+          {
+            sender: 'Tradeazy',
+            first_name: vendor.firstName,
+            last_name: vendor.lastName,
+            email: vendor.email,
+            beneficiary_country: 'NG',
+            mobile_number: '+2348131133933',
+            merchant_name: vendor.businessName,
+          },
+        ],
       };
 
       const response = await this.flutterwave.Transfer.initiate(details);
-      console.log(response);
+      console.log('Transfer Response->:', response);
       if (response.status === 'error') throw new Error(response.message);
 
       if (
@@ -477,19 +379,13 @@ export class WalletService {
           response.data.status === 'NEW')
       ) {
         await prisma.$transaction(async (tx) => {
-          // REMOVE FROM HERE
-          await tx.wallet.update({
-            where: { id: vendorWallet.id },
-            data: {
-              balance: { decrement: Number(data.amount) },
-              totalWithdrawal: { increment: Number(data.amount) },
-            },
-          });
+          // create transaction
           await tx.transaction.create({
             data: {
               reference_id: txn_ref,
               amount: data.amount,
               type: 'DEBIT',
+              status: 'PENDING',
               message: 'Money Withdrawal',
               vendorId,
             },
@@ -512,11 +408,254 @@ export class WalletService {
     }
   }
 
-  static async processWithdrawals(eventType: string) {}
-
-  static async processPayments(payload: any) {
-    const verifiedTransaction = await this.verifyPaymentTransaction({
-      id: payload?.id?.toString(),
+  static async processWithdrawals(payload: IWithDrawalData) {
+    // verify the transaction from flutterwave again
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        reference_id: payload.reference,
+      },
+      select: {
+        id: true,
+        vendorId: true,
+      },
     });
+
+    if (!transaction) return new NotFoundError(Message.TRANSACTION_NOT_FOUND);
+    console.log('Payloadddd>>>>>>', payload);
+
+    if (payload.status !== 'FAILED' && payload.status !== 'PENDING') {
+      await prisma.$transaction(async (tx) => {
+        // create transaction
+        await tx.transaction.update({
+          where: {
+            id: transaction.id,
+          },
+          data: {
+            type: 'DEBIT',
+            status: 'COMPLETED',
+            message: 'Money Withdrawal',
+          },
+        });
+        //update wallet
+        await tx.wallet.update({
+          where: {
+            vendorId: transaction.vendorId,
+          },
+          data: {
+            balance: { decrement: Number(payload.amount) },
+            totalWithdrawal: { increment: Number(payload.amount) },
+          },
+        });
+        await tx.activityLog.create({
+          data: {
+            action: 'WITHDRAWAL',
+            message: Message.MONEY_WITHDRAWN,
+            vendorId: transaction.vendorId,
+          },
+        });
+      });
+      return new SuccessResponse(Message.NGN_TRANSACTION_SUCCESSFUL);
+    } else {
+      await prisma.$transaction(async (tx) => {
+        // create transaction
+        await tx.transaction.update({
+          where: {
+            id: transaction.id,
+          },
+          data: {
+            type: 'DEBIT',
+            status: 'FAILED',
+            message: 'Money Withdrawal',
+          },
+        });
+        await tx.activityLog.create({
+          data: {
+            action: 'WITHDRAWAL',
+            message: Message.WITHDRAWAL_FAILED,
+            vendorId: transaction.vendorId,
+          },
+        });
+      });
+      return new SuccessResponse(Message.WITHDRAWAL_FAILED);
+    }
+  }
+
+  static async processPayments(payload: ICardTransaction) {
+    // verify the transaction from flutterwave again
+
+    const verifiedTransaction = await this.verifyPaymentTransaction({
+      id: payload.id.toString(),
+    });
+    console.log(payload);
+    // check if it's successful and the amount is correct along with the transaction reference
+    if (
+      verifiedTransaction.status === 'successful' &&
+      verifiedTransaction.amount === payload?.amount &&
+      verifiedTransaction.tx_ref === payload?.txRef
+    ) {
+      const invoiceId = payload.txRef.replace('FLW-TRE-', '');
+
+      // Get the transaction from database
+      const transaction = await prisma.transaction.findFirst({
+        where: {
+          reference_id: verifiedTransaction.tx_ref,
+        },
+        select: {
+          id: true,
+          vendorId: true,
+        },
+      });
+      // if the transaction exists (for what ever reason it should exist e.g. first transaction failed)
+      // it shouldn't happen but you can't be too careful with people's money lol
+      if (transaction) {
+        await prisma.$transaction(async (tx) => {
+          // find invoice
+          const invoice = await tx.invoice.findUnique({
+            where: { id: invoiceId },
+            select: {
+              issuedTo: {
+                select: {
+                  fullname: true,
+                },
+              },
+              issuedBy: {
+                select: {
+                  id: true,
+                  wallet: true,
+                },
+              },
+            },
+          });
+          if (!invoice) return new NotFoundError(Message.INVOICE_NOT_FOUND);
+          if (transaction.vendorId !== invoice.issuedBy.id) return;
+          // update transaction status to completed
+          await tx.transaction.update({
+            where: {
+              id: transaction.id,
+              reference_id: verifiedTransaction.tx_ref,
+            },
+            data: {
+              type: 'CREDIT',
+              status: 'COMPLETED',
+            },
+          });
+
+          await tx.wallet.update({
+            where: {
+              vendorId: invoice.issuedBy.id,
+            },
+            data: {
+              balance: { increment: verifiedTransaction.amount },
+              totalCredit: { increment: verifiedTransaction.amount },
+            },
+          });
+
+          // update invoice status to paid
+          await tx.invoice.update({
+            where: {
+              id: invoiceId,
+            },
+            data: {
+              status: 'PAID',
+            },
+          });
+
+          // create activity log
+          await tx.activityLog.create({
+            data: {
+              action: 'PAYMENT',
+              message: Message.PAYMENT_RECEIVED.replace(
+                '<USER>',
+                invoice.issuedTo.fullname
+              ),
+              vendorId: invoice.issuedBy.id,
+            },
+          });
+        });
+      }
+
+      // this should be abstracted but LMAO I'm tired
+      await prisma.$transaction(async (tx) => {
+        // find invoice
+        const invoice = await tx.invoice.findUnique({
+          where: { id: invoiceId },
+          select: {
+            issuedTo: {
+              select: {
+                fullname: true,
+              },
+            },
+            issuedBy: {
+              select: {
+                id: true,
+                wallet: true,
+              },
+            },
+          },
+        });
+        if (!invoice) return new NotFoundError(Message.INVOICE_NOT_FOUND);
+
+        // create transaction
+        await tx.transaction.create({
+          data: {
+            reference_id: verifiedTransaction.tx_ref,
+            amount: verifiedTransaction.amount,
+            vendorId: invoice.issuedBy.id,
+            type: 'CREDIT',
+            status: 'COMPLETED',
+          },
+        });
+        if (!invoice.issuedBy.wallet) {
+          await tx.wallet.create({
+            data: {
+              vendorId: invoice.issuedBy.id,
+            },
+          });
+        }
+        // update wallet
+        await tx.wallet.update({
+          where: {
+            vendorId: invoice.issuedBy.id,
+          },
+          data: {
+            balance: { increment: verifiedTransaction.amount },
+            totalCredit: { increment: verifiedTransaction.amount },
+          },
+        });
+
+        // update invoice status to paid
+        await tx.invoice.update({
+          where: {
+            id: invoiceId,
+          },
+          data: {
+            status: 'PAID',
+          },
+        });
+
+        // create transaction
+        await prisma.transaction.create({
+          data: {
+            reference_id: verifiedTransaction.tx_ref,
+            amount: verifiedTransaction.amount,
+            vendorId: invoice.issuedBy.id,
+            type: 'CREDIT',
+            status: 'COMPLETED',
+          },
+        });
+
+        // create activity log
+        await tx.activityLog.create({
+          data: {
+            action: 'PAYMENT',
+            message: Message.PAYMENT_RECEIVED.replace(
+              '<USER>',
+              invoice.issuedTo.fullname
+            ),
+            vendorId: invoice.issuedBy.id,
+          },
+        });
+      });
+    }
   }
 }

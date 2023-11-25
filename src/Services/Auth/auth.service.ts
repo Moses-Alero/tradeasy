@@ -32,7 +32,7 @@ export class AuthService {
       const emailBody = welcomeTemplate(name, OTP);
       const mailParams: EmailParams = {
         To: email,
-        Subject: 'Welcome To TradEazy',
+        Subject: 'Welcome To Tradeazy',
         Body: emailBody,
       };
       await Mailer.sendEmail(mailParams);

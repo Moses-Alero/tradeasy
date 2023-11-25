@@ -15,4 +15,11 @@ export async function vendorRoute(fastify: FastifyInstance): Promise<void> {
     { onRequest: [AuthMiddleware.authenticate] },
     ResponseHandler.handle(VendorController.getVendor)
   );
+  fastify.get(
+    '/activity',
+    {
+      onRequest: [AuthMiddleware.authenticate],
+    },
+    ResponseHandler.handle(VendorController.getActivityLogs)
+  );
 }

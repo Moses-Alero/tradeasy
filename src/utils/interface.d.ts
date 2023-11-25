@@ -200,3 +200,106 @@ export interface IPagination {
   pageSize?: string;
   pageNumber?: string;
 }
+
+export interface ICardTransaction {
+  id: number;
+  txRef: string;
+  flwRef: string;
+  orderRef: string;
+  paymentPlan: null;
+  paymentPage: null;
+  createdAt: string;
+  amount: number;
+  charged_amount: number;
+  status: string;
+  IP: string;
+  currency: string;
+  appfee: number;
+  merchantfee: number;
+  merchantbearsfee: number;
+  customer: {
+    id: number;
+    phone: null;
+    fullName: string;
+    customertoken: null;
+    email: string;
+    createdAt: string;
+    updatedAt: string;
+    deletedAt: null;
+    AccountId: number;
+  };
+  entity: {
+    card6: string;
+    card_last4: string;
+    card_country_iso: string;
+    createdAt: string;
+  };
+  eventType: string;
+}
+
+export interface IVerifiedCardTransaction {
+  id: number;
+  tx_ref: string;
+  flw_ref: string;
+  device_fingerprint: string;
+  amount: number;
+  currency: string;
+  charged_amount: number;
+  app_fee: number;
+  merchant_fee: number;
+  processor_response: string;
+  auth_model: string;
+  ip: string;
+  narration: string;
+  status: string;
+  payment_type: string;
+  created_at: string;
+  account_id: number;
+  card: {
+    first_6digits: string;
+    last_4digits: string;
+    issuer: string;
+    country: string;
+    type: string;
+    token: string;
+    expiry: string;
+  };
+  meta: {
+    __CheckoutInitAddress: string;
+    consumer_id: string;
+    consumer_mac: string;
+  };
+  amount_settled: number;
+  customer: {
+    id: number;
+    name: string;
+    phone_number: string;
+    email: string;
+    created_at: string;
+  };
+}
+
+interface IWithDrawalData {
+  id: number;
+  account_number: string;
+  bank_code: string;
+  full_name: string;
+  created_at: string;
+  currency: string;
+  amount: number;
+  fee: number;
+  status: string;
+  reference: string;
+  meta: null;
+  narration: string;
+  complete_message: string;
+  requires_approval: number;
+  is_approved: number;
+  bank_name: string;
+}
+
+interface IWithDrawalResponse {
+  status: string;
+  message: string;
+  transfer: IWithDrawalDataData;
+}
