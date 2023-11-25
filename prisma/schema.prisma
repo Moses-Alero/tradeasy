@@ -39,6 +39,7 @@ model Vendor {
   invoices           Invoice[]
   wallet             Wallet?       @relation("vendor")
   transactions       Transaction[]
+  ActivityLog        ActivityLog[]
 
   @@map("vendor")
 }
@@ -133,6 +134,16 @@ model Transaction {
   @@map("transactions")
 }
 
+model ActivityLog {
+  id        String   @id @default(uuid())
+  action    ACTIVITY
+  message   String
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum VENDOR_TYPE {
   INDIVIDUAL
   ORGANIZATION
@@ -157,6 +168,12 @@ enum CURRENCY {
   USD
   GBP
   EUR
+}
+
+enum ACTIVITY {
+  WITHDRAWAL
+  PAYMENT
+  INVOICE
 }
 
 enum TransactionChargeType {

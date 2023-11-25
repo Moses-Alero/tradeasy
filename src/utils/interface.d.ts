@@ -12,6 +12,11 @@ import {
 } from '@prisma/client';
 import { Method } from 'axios';
 
+export const enum transactionHistoryType {
+  credit = 'credit',
+  debit = 'debit',
+}
+
 type RequestHandler<T> = (
   req: FastifyRequest,
   reply?: FastifyReply
@@ -148,4 +153,50 @@ export interface HTTPMethods {
   PATCH: Method;
   POST: Method;
   DELETE: Method;
+}
+
+export interface IBankData {
+  id: number;
+  code: string;
+  bank: string;
+}
+
+export interface IBankResponse {
+  status: string;
+  message: string;
+  data: IBankData[];
+}
+
+export interface IBankAccountInfo {
+  accountNumber: string;
+  bankCode: string;
+}
+
+export interface IAccountInfo {
+  account_number: string;
+  account_name: string;
+}
+export interface IBankAccountResponse {
+  status: string;
+  message: string;
+  data: IAccountInfo;
+}
+
+export interface IWithdraw {
+  bankCode: string;
+  accountNumber: string;
+  amount: number;
+  narration: string;
+}
+
+export interface ICreateTransaction {
+  reason: string;
+  userId: string;
+  amount: number;
+  transactionType: transactionHistoryType;
+}
+
+export interface IPagination {
+  pageSize?: string;
+  pageNumber?: string;
 }

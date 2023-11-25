@@ -6,13 +6,20 @@ import NotFoundError from '../../utils/errors/notFoundError';
 import InternalServerError from '../../utils/errors/internalServerError';
 import bcrypt from 'bcryptjs';
 import ValidationError from '../../utils/errors/validationError';
-import {
+import type {
   ApiResponse,
+  IAccountInfo,
+  IBankAccountInfo,
+  IBankAccountResponse,
+  IBankData,
+  IBankResponse,
   IFlutterwaveInputPayload,
   IFlutterwaveTransaction,
+  IPagination,
   ISetTransactionPinPayload,
   ITransaction,
   IVendor,
+  IWithdraw,
   InputParamsObject,
   PaginateResult,
   PaginationInputQuery,
@@ -32,6 +39,12 @@ const {
 
 export class WalletService {
   static flutterwave = new Flutterwave(PUBLIC_KEY, SECRET_KEY);
+
+  static generateTransactionReference() {
+    const date = new Date();
+    const timestamp = date.getTime();
+    return 'FLW-TRE-' + timestamp;
+  }
 
   static async createUserWallet(
     request: FastifyRequest
@@ -65,16 +78,22 @@ export class WalletService {
   static async transactionHistory(
     request: FastifyRequest
   ): Promise<ApiResponse<PaginateResult<ITransaction[]>>> {
-    const vendor = request.user as IVendor;
-    const { limit = 10, cursor } = request.query as PaginationInputQuery;
     try {
-      const pageCursor = cursor
-        ? {
-            id: atob(cursor),
-          }
-        : undefined;
+      const vendor = request.user as IVendor;
+      const payload = request.query as IPagination;
+      const currentPage = parseInt(payload?.pageNumber || '1');
+      const limit = parseInt(payload.pageSize || '20');
+      const skip = limit * (currentPage - 1);
+
+      const totalCount = await prisma.transaction.count({
+        where: { vendorId: vendor.id },
+      });
 
       const pageSize = Number(limit);
+      const totalPages = Math.ceil(totalCount / limit);
+
+      const hasPrevious = currentPage > 1 && totalPages > 1;
+      const hasNext = currentPage < totalPages;
       const result = (await prisma.transaction.findMany({
         where: {
           vendorId: vendor.id,
@@ -88,11 +107,12 @@ export class WalletService {
           status: true,
         },
         take: pageSize,
-        cursor: pageCursor,
-        skip: pageCursor ? 1 : undefined,
+        skip,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       })) as ITransaction[];
-      const data = paginate(result, limit);
+      const data = paginate(result, currentPage, limit, hasNext, totalCount);
+      if (data instanceof NotFoundError)
+        return new NotFoundError(Message.NO_RESOURCE);
       return new SuccessResponse(
         Message.TRANSACTION_HISTORY_FETCHED,
         STANDARD.SUCCESS,
@@ -174,25 +194,28 @@ export class WalletService {
 
     try {
       // If you specified a secret hash, check for the signature
-      // const secretHash = environment.flutterwave.verifyHash;
+      const secretHash = environment.flutterwave.verifyHash;
 
-      // const signature = atob(headers['verif-hash']);
+      const signature = headers['verif-hash'];
 
-      // if (!signature || signature !== secretHash) {
-      //   return new ConflictError(Message.SIGNATURE_MISMATCH);
-      // }
+      if (!signature || signature !== secretHash) {
+        console.log(Message.SIGNATURE_MISMATCH);
+        return new ConflictError(Message.SIGNATURE_MISMATCH);
+      }
+      console.log(request.body['event.type']);
 
+      const eventType = request.body['event.type'];
+      if (eventType === 'CARD_TRANSACTION') {
+        await this.processPayments(eventType);
+      }
       // find invoice
-      const invoice = await prisma.invoice.findFirst({
-        where: {
-          id: payload?.invoiceId,
-        },
-        select: {},
-      });
+
       // verify the transaction from flutterwave again
       const verifiedTransaction = await this.verifyPaymentTransaction({
         id: payload?.id?.toString(),
       });
+
+      console.log(verifiedTransaction);
 
       // check if it's successful and the amount is correct along with the transaction reference
       if (
@@ -298,17 +321,26 @@ export class WalletService {
                 },
               });
             });
+            console.log(Message.webhookDataReceived);
             return new SuccessResponse(Message.webhookDataReceived);
           } else {
+            console.log(Message.WRONG_REQUEST);
             return new ValidationError(Message.WRONG_REQUEST);
           }
         } else {
+          console.log(Message.USER_NOT_FOUND);
           return new NotFoundError(Message.USER_NOT_FOUND);
         }
       } else {
+        console.log(Message.GENERAL_ERROR);
+
         return new ValidationError(Message.GENERAL_ERROR);
       }
-    } catch (e) {}
+    } catch (e) {
+      request.log.error(e);
+      handleDBError(e);
+      new InternalServerError();
+    }
   }
 
   static async verifyPaymentTransaction(payload: {
@@ -318,7 +350,9 @@ export class WalletService {
     return response.data;
   }
 
-  static async getBankList(request: FastifyRequest): Promise<ApiResponse<any>> {
+  static async getBanks(
+    request: FastifyRequest
+  ): Promise<ApiResponse<IBankData[]>> {
     try {
       const apiGateway = new APIGateway(axios);
 
@@ -337,16 +371,152 @@ export class WalletService {
         null,
         options.headers
       );
+      const bankResponse = response.data as IBankResponse;
+      //sort banks alphabetically
+      const listOfBanks = bankResponse.data;
+      const data = listOfBanks.sort((a: any, b: any) => {
+        return a.name.localeCompare(b.name);
+      });
 
       return new SuccessResponse(
         Message.BANK_LIST_FETCHED,
         STANDARD.SUCCESS,
-        response.data
+        data
       );
     } catch (e) {
       request.log.error(e);
       handleDBError(e);
       new InternalServerError();
     }
+  }
+
+  static async verifyBankAccount(
+    request: FastifyRequest
+  ): Promise<ApiResponse<IAccountInfo>> {
+    try {
+      const { accountNumber, bankCode } = request.body as IBankAccountInfo;
+      const details = {
+        account_number: accountNumber, // This is the account number to be verified
+        account_bank: bankCode, // This is the bank code of the account
+      };
+
+      const accountInfo = (await this.flutterwave.Misc.verify_Account(
+        details
+      )) as IBankAccountResponse;
+
+      if (!accountInfo)
+        return new ValidationError(Message.INVALID_ACCOUNT_NUMBER);
+      if (accountInfo.status === 'error')
+        return new ValidationError(accountInfo.message);
+
+      const data = accountInfo.data;
+      return new SuccessResponse(
+        Message.ACCOUNT_FETCHED,
+        STANDARD.SUCCESS,
+        data
+      );
+    } catch (e) {
+      request.log.error(e);
+      handleDBError(e);
+      new InternalServerError();
+    }
+  }
+
+  static async withdrawToBank(
+    request: FastifyRequest
+  ): Promise<ApiResponse<void>> {
+    try {
+      const { id: vendorId } = request.user as IVendor;
+      const password = request.body['password'];
+      const vendor = await prisma.vendor.findUnique({
+        where: {
+          id: vendorId,
+        },
+      });
+      const data = request.body as IWithdraw;
+      const isMatch = await bcrypt.compare(password, vendor.password);
+      if (!isMatch) return new ValidationError(Message.INCORRECT_PASSWORD);
+      let vendorWallet = await prisma.wallet.findFirst({
+        where: {
+          vendorId,
+        },
+      });
+      if (!vendorWallet) {
+        vendorWallet = await prisma.wallet.create({
+          data: {
+            vendorId,
+          },
+        });
+      }
+
+      if (Number(data.amount) < 100)
+        return new ValidationError(
+          Message.MINIMUM_WITHDRAWAL.replace('<AMOUNT>', '100')
+        );
+
+      if (Number(data.amount) > Number(vendorWallet.balance)) {
+        return new ValidationError(Message.INSUFFICIENT_FUND);
+      }
+      const txn_ref = this.generateTransactionReference();
+      const details = {
+        account_bank: data.bankCode,
+        account_number: data.accountNumber,
+        amount: data.amount,
+        narration: 'TradEazy WithDrawal',
+        currency: 'NGN',
+        reference: txn_ref,
+      };
+
+      const response = await this.flutterwave.Transfer.initiate(details);
+      console.log(response);
+      if (response.status === 'error') throw new Error(response.message);
+
+      if (
+        response.status === 'success' &&
+        (response.data.status === 'SUCCESSFUL' ||
+          response.data.status === 'NEW')
+      ) {
+        await prisma.$transaction(async (tx) => {
+          // REMOVE FROM HERE
+          await tx.wallet.update({
+            where: { id: vendorWallet.id },
+            data: {
+              balance: { decrement: Number(data.amount) },
+              totalWithdrawal: { increment: Number(data.amount) },
+            },
+          });
+          await tx.transaction.create({
+            data: {
+              reference_id: txn_ref,
+              amount: data.amount,
+              type: 'DEBIT',
+              message: 'Money Withdrawal',
+              vendorId,
+            },
+          });
+          await tx.activityLog.create({
+            data: {
+              action: 'WITHDRAWAL',
+              message: Message.PROCESSING_WITHDRAWAL,
+              vendorId,
+            },
+          });
+        });
+        return new SuccessResponse(Message.PROCESSING_TRANSACTION);
+      }
+    } catch (e) {
+      console.log(e);
+      request.log.error(e);
+      handleDBError(e);
+      return new InternalServerError();
+    }
+  }
+
+  static async processWithdrawals(eventType: string) {}
+
+  static async processPayments(payload: any) {
+    const verifiedTransaction = await this.verifyPaymentTransaction({
+      id: payload?.id?.toString(),
+    });
   }
 }

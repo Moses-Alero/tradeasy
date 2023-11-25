@@ -32,6 +32,7 @@ interface Environment {
   flutterwave: {
     secretKey: string;
     publicKey: string;
+    verifyHash: string;
   };
 }
 
@@ -65,5 +66,6 @@ export const environment: Environment = {
   flutterwave: {
     secretKey: process.env.FLUTTERWAVE_SECRET_KEY || '',
     publicKey: process.env.FLUTTERWAVE_PUBLIC_KEY || '',
+    verifyHash: process.env.FLUTTERWAVE_VERIFY_HASH || '',
   },
 };
