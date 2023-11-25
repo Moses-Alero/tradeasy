@@ -25,20 +25,14 @@ import {
 
 export class InvoiceService {
   static generateInvoiceNumber(businessName: string): string {
-    // Get the first three letters of the business name
     const prefix = businessName.substring(0, 3).toUpperCase();
-
-    // Get the current date-time in seconds
     const dateTimeInSeconds = Math.floor(Date.now() / 1000);
-
-    // Generate the invoice number
     const invoiceNumber = `INV-${prefix}-${dateTimeInSeconds}`;
 
     return invoiceNumber;
   }
 
   static async generateAndSendInvoice(invoiceId: string): Promise<void> {
-    // Generate the invoice number
     const invoice = await this.getInvoiceData(invoiceId);
     const invoiceBody = invoiceEmailTemplate(invoice);
     const mailParams = {
@@ -67,7 +61,7 @@ export class InvoiceService {
       if (!client) return new NotFoundError(Message.CLIENT_NOT_FOUND);
       //if not specified due date is automatically set to 7 days later
       const dueDate = new Date();
-      dueDate.setDate(dueDate.getDate() + 7);
+      dueDate.setDate(dueDate.getDate() + 2);
       const invoice = await prisma.invoice.create({
         data: {
           invoiceNo,
@@ -75,7 +69,7 @@ export class InvoiceService {
           description: invoiceData.description ?? undefined,
           totalAmount: invoiceData.totalAmount,
           dueDate,
-          status: 'SENT',
+          status: 'UNPAID',
           vendorId: vendor.id,
           clientId: client.id,
         },
@@ -89,6 +83,16 @@ export class InvoiceService {
             clientId: client.id,
           };
         }),
+      });
+      await prisma.activityLog.create({
+        data: {
+          action: 'INVOICE',
+          message: Message.INVOICE_SENT_TO.replace(
+            '<CLIENT>',
+            client.companyName ? client.companyName : client.fullname
+          ),
+          vendorId: vendor.id,
+        },
       });
       await this.generateAndSendInvoice(invoice.id);
       return new SuccessResponse(
@@ -276,7 +280,7 @@ export class InvoiceService {
           }),
           prisma.invoice.count({
             where: {
-              status: 'SENT',
+              status: 'UNPAID',
             },
           }),
           prisma.invoice.count({
@@ -363,7 +367,7 @@ export class InvoiceService {
           id: invoiceId,
         },
         data: {
-          status: 'SENT',
+          status: 'UNPAID',
         },
       });
 

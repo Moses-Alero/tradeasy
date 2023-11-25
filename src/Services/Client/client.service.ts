@@ -88,7 +88,7 @@ export class ClientService {
         return invoice.status === 'PAID';
       }).length;
       const totalPendingInvoices = clientData.invoices.filter((invoice) => {
-        return invoice.status === 'SENT';
+        return invoice.status === 'UNPAID';
       }).length;
       const totalOverdueInvoices = clientData.invoices.filter((invoice) => {
         return invoice.status === 'OVERDUE';

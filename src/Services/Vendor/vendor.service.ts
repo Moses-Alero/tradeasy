@@ -59,14 +59,27 @@ export class VendorService {
           email: true,
           createdAt: true,
           updatedAt: true,
+          wallet: {
+            select: {
+              totalWithdrawal: true,
+              totalCredit: true,
+              balance: true,
+            },
+          },
         },
       });
+      const wallet = vendor.wallet;
+      delete vendor.wallet;
+      const data = {
+        ...vendor,
+        ...wallet,
+      };
 
       if (!vendor) return new NotFoundError(Message.VENDOR_NOT_FOUND);
       return new SuccessResponse(
         Message.VENDOR_FETCHED,
         STANDARD.SUCCESS,
-        vendor
+        data
       );
     } catch (error) {
       request.log.error(error);
@@ -130,6 +143,7 @@ export class VendorService {
           message: true,
           createdAt: true,
         },
+        take: 10,
       });
       return new SuccessResponse(
         Message.ACTIVITY_LOGS_FETCHED,

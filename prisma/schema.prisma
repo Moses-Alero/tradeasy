@@ -70,7 +70,7 @@ model Invoice {
   totalAmount  Float
   issuedAt     DateTime       @default(now())
   dueDate      DateTime?      @default(now())
-  status       INVOICE_STATUS @default(DRAFT)
+  status       INVOICE_STATUS @default(UNPAID)
   isDeleted    Boolean        @default(false)
   vendorId     String
   issuedBy     Vendor         @relation(fields: [vendorId], references: [id])
@@ -157,7 +157,7 @@ enum CLIENT_TYPE {
 
 enum INVOICE_STATUS {
   DRAFT
-  SENT
+  UNPAID
   PAID
   OVERDUE
   DISPUTE
