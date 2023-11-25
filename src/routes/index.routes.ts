@@ -9,7 +9,7 @@ import { walletRoute } from '../Services/Wallet/wallet.routes';
 
 export const initRoute = (server: FastifyInstance): void => {
   server.get('/', (_request, reply) => {
-    reply.send({ name: 'Invoice Generator' });
+    reply.send({ name: 'Tradeazy Api Running...' });
   });
   server.get('/api/v1/health-check', async (request, reply) => {
     try {

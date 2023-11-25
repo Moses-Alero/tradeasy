@@ -112,7 +112,7 @@ export class AuthService {
           password,
         },
       });
-      await prisma.wallet.create({
+      const wallet = await prisma.wallet.create({
         data: {
           vendorId: newVendor.id,
         },
@@ -124,7 +124,12 @@ export class AuthService {
       const vendorData = await this.vendorInfo(newVendor.id);
       const data = {
         token,
-        vendor: vendorData,
+        vendor: {
+          ...vendorData,
+          totalWithdrawal: wallet.totalWithdrawal,
+          totalCredit: wallet.totalCredit,
+          balance: wallet.balance,
+        },
       };
       // this.send verification otp;
       this.generateAndSendEmailOTP(
@@ -154,6 +159,17 @@ export class AuthService {
         where: {
           email: email.toLocaleLowerCase(),
         },
+        select: {
+          id: true,
+          password: true,
+          wallet: {
+            select: {
+              totalCredit: true,
+              totalWithdrawal: true,
+              balance: true,
+            },
+          },
+        },
       });
       if (!vendor) return new NotFoundError(Message.INVALID_USER);
 
@@ -169,7 +185,12 @@ export class AuthService {
 
       const data = {
         token,
-        vendor: currentVendor,
+        vendor: {
+          ...currentVendor,
+          totalWithdrawal: vendor.wallet.totalWithdrawal,
+          totalCredit: vendor.wallet.totalCredit,
+          balance: vendor.wallet.balance,
+        },
       };
       return new SuccessResponse(
         Message.SUCCESSFUL_LOGIN,
