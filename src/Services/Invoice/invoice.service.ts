@@ -271,25 +271,30 @@ export class InvoiceService {
     request: FastifyRequest
   ): Promise<ApiResponse<IInvoiceStatistics>> {
     try {
+      const vendor = request.user as IVendor;
       const [draftInvoices, pendingInvoices, paidInvoices, overDueInvoices] =
         await prisma.$transaction([
           prisma.invoice.count({
             where: {
+              vendorId: vendor.id,
               status: 'DRAFT',
             },
           }),
           prisma.invoice.count({
             where: {
+              vendorId: vendor.id,
               status: 'UNPAID',
             },
           }),
           prisma.invoice.count({
             where: {
+              vendorId: vendor.id,
               status: 'PAID',
             },
           }),
           prisma.invoice.count({
             where: {
+              vendorId: vendor.id,
               status: 'OVERDUE',
             },
           }),
