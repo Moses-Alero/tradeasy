@@ -125,6 +125,7 @@ export class InvoiceService {
           description: true,
           totalAmount: true,
           dueDate: true,
+          status: true,
           issuedAt: true,
           issuedTo: {
             select: {
@@ -430,6 +431,7 @@ export class InvoiceService {
           description: true,
           totalAmount: true,
           dueDate: true,
+          status: true,
           issuedAt: true,
           issuedTo: {
             select: {

@@ -20,4 +20,9 @@ export async function walletRoute(fastify: FastifyInstance): Promise<void> {
     {},
     ResponseHandler.handle(WalletController.webhook)
   );
+  fastify.get(
+    '/history',
+    { onRequest: AuthMiddleware.authenticate },
+    ResponseHandler.handle(WalletController.getPaymentHistory)
+  );
 }

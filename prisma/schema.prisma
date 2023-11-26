@@ -111,25 +111,27 @@ model Wallet {
 }
 
 model Transaction {
-  id            String                 @id @default(uuid())
-  reference_id  String                 @db.VarChar
-  amount        Decimal                @default(0) @db.Decimal(20, 2)
-  title         String?
-  message       String?
-  chargedAmount Decimal?               @db.Decimal(20, 2)
-  status        TransactionStatus?     @default(PENDING)
-  type          TransactionType?       @default(CREDIT)
-  chargeType    TransactionChargeType? @default(CARD)
-  currencyId    String?                @map("currency_id")
-  senderId      String?                @map("sender_id")
-  recipientId   String?                @map("recipient_id")
-  vendorId      String?
-  isDeleted     Boolean                @default(false)
-  createdAt     DateTime               @default(now())
-  updatedAt     DateTime               @updatedAt
-  deletedAt     DateTime?
-  currency      CURRENCY               @default(NGN)
-  vendor        Vendor?                @relation(fields: [vendorId], references: [id])
+  id              String                 @id @default(uuid())
+  reference_id    String                 @db.VarChar
+  amount          Decimal                @default(0) @db.Decimal(20, 2)
+  title           String?
+  message         String?
+  chargedAmount   Decimal?               @db.Decimal(20, 2)
+  status          TransactionStatus?     @default(PENDING)
+  type            TransactionType?       @default(CREDIT)
+  chargeType      TransactionChargeType? @default(CARD)
+  transacterName  String?
+  transacterEmail String?
+  currencyId      String?                @map("currency_id")
+  senderId        String?                @map("sender_id")
+  recipientId     String?                @map("recipient_id")
+  vendorId        String?
+  isDeleted       Boolean                @default(false)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  deletedAt       DateTime?
+  currency        CURRENCY               @default(NGN)
+  vendor          Vendor?                @relation(fields: [vendorId], references: [id])
 
   @@map("transactions")
 }

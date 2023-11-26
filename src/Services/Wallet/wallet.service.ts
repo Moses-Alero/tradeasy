@@ -388,6 +388,8 @@ export class WalletService {
               status: 'PENDING',
               message: 'Money Withdrawal',
               vendorId,
+              transacterName: vendor.businessName,
+              transacterEmail: vendor.email,
             },
           });
           await tx.activityLog.create({
@@ -516,6 +518,7 @@ export class WalletService {
               issuedTo: {
                 select: {
                   fullname: true,
+                  email: true,
                 },
               },
               issuedBy: {
@@ -537,6 +540,8 @@ export class WalletService {
             data: {
               type: 'CREDIT',
               status: 'COMPLETED',
+              transacterName: invoice.issuedTo.fullname,
+              transacterEmail: invoice.issuedTo.email,
             },
           });
 
@@ -583,6 +588,7 @@ export class WalletService {
             issuedTo: {
               select: {
                 fullname: true,
+                email: true,
               },
             },
             issuedBy: {
@@ -603,6 +609,8 @@ export class WalletService {
             vendorId: invoice.issuedBy.id,
             type: 'CREDIT',
             status: 'COMPLETED',
+            transacterName: invoice.issuedTo.fullname,
+            transacterEmail: invoice.issuedTo.email,
           },
         });
         if (!invoice.issuedBy.wallet) {
@@ -633,17 +641,6 @@ export class WalletService {
           },
         });
 
-        // create transaction
-        await prisma.transaction.create({
-          data: {
-            reference_id: verifiedTransaction.tx_ref,
-            amount: verifiedTransaction.amount,
-            vendorId: invoice.issuedBy.id,
-            type: 'CREDIT',
-            status: 'COMPLETED',
-          },
-        });
-
         // create activity log
         await tx.activityLog.create({
           data: {
@@ -656,6 +653,65 @@ export class WalletService {
           },
         });
       });
+    }
+  }
+
+  static async getPaymentHistory(
+    request: FastifyRequest
+  ): Promise<ApiResponse<any>> {
+    try {
+      const vendor = request.user as IVendor;
+      const payload = request.query as IPagination;
+      const currentPage = parseInt(payload?.pageNumber || '1');
+      const limit = parseInt(payload.pageSize || '20');
+      const skip = limit * (currentPage - 1);
+
+      const totalCount = await prisma.transaction.count({
+        where: { vendorId: vendor.id },
+      });
+
+      const pageSize = Number(limit);
+      const totalPages = Math.ceil(totalCount / limit);
+      const hasPrevious = currentPage > 1 && totalPages > 1;
+      const hasNext = currentPage < totalPages;
+
+      const transactions = await prisma.transaction.findMany({
+        where: {
+          vendorId: vendor.id,
+        },
+        take: pageSize,
+        skip,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: {
+          id: true,
+          amount: true,
+          createdAt: true,
+          currency: true,
+          type: true,
+          status: true,
+          transacterName: true,
+          transacterEmail: true,
+        },
+      });
+
+      const data = paginate(
+        transactions,
+        currentPage,
+        limit,
+        !hasNext,
+        totalCount
+      );
+      if (data instanceof NotFoundError)
+        return new NotFoundError(Message.NO_RESOURCE);
+      return new SuccessResponse(
+        Message.TRANSACTION_HISTORY_FETCHED,
+        STANDARD.SUCCESS,
+        data
+      );
+    } catch (error) {
+      request.log.error(error);
+      handleDBError(error);
+      new InternalServerError();
     }
   }
 }

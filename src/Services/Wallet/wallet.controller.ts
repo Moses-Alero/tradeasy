@@ -23,4 +23,10 @@ export class WalletController {
   static async webhook(request: FastifyRequest): Promise<ApiResponse<void>> {
     return await WalletService.flutterwaveWebhook(request);
   }
+
+  static async getPaymentHistory(
+    request: FastifyRequest
+  ): Promise<ApiResponse<any>> {
+    return await WalletService.getPaymentHistory(request);
+  }
 }
