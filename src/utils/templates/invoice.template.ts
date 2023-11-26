@@ -205,7 +205,7 @@ export const invoicePaymentTemplate = (data: any) => {
                   tx_ref: "FLW-TRE-${data.id}",
                   amount: "${data.totalAmount}",
                   currency: "NGN",
-                  payment_options: "card, mobilemoneyghana, ussd",
+                  payment_options: "card",
                   callback: function(payment) {
                       verifyTransactionOnBackend(payment.id);
                   },
