@@ -3,7 +3,6 @@ import { handleDBError } from '../../utils/errorHandler';
 import InternalServerError from '../../utils/errors/internalServerError';
 import { ApiResponse, IVendor } from '../../utils/interface';
 import { prisma } from '../../utils/prisma';
-import { server } from '../../index';
 import SuccessResponse from '../../utils/response/successResponse';
 import { Message } from '../../utils/response';
 import { STANDARD } from '../../utils/constants/constant';
